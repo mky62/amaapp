@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@react-email/components": "^1.0.8",
+    "bcrypt": "^6.0.0",
+    "better-auth": "^1.4.19",
     "mongodb": "^7.1.0",
     "mongoose": "^9.2.2",
     "next": "16.1.6",
@@ -20,6 +22,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/bcrypt": "^6.0.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
