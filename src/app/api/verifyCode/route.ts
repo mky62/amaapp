@@ -1,5 +1,5 @@
-import dbConnect from "@/src/lib/dbConnect";
-import UserModel from "@/src/model/User";
+import dbConnect from "@/lib/dbConnect";
+import UserModel from "@/model/User";
 
 
 export async function POST(request: Request) {
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
         const isCodeValid = user.verifyCode === code;
         const isCodeNotExpired = new Date(user.verifyCodeExpires) > new Date();
 
-        if (isCodeValid || isCodeNotExpired) {
+        if (isCodeValid && isCodeNotExpired) {
             // update the user verififcation status
             user.isVerified = true;
             await user.save();

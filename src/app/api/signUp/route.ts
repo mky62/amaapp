@@ -1,7 +1,7 @@
-import dbConnect from "@/src/lib/dbConnect";
-import UserModel from "@/src/model/User";
+import dbConnect from "@/lib/dbConnect";
+import UserModel from "@/model/User";
 import bcrypt from 'bcrypt';
-import { sendVrfMail as sendVerificationEmail } from "@/src/helpers/sendVrfMail";
+import { sendVrfMail as sendVerificationEmail } from "@/helpers/sendVrfMail";
 
 export async function POST(req: Request ) {
     await dbConnect();
@@ -25,7 +25,7 @@ export async function POST(req: Request ) {
         }
 
         const existingUserByEmail = await UserModel.findOne({ email });
-        let verifyCode = Math.floor(10000 + Math.random() * 50000).toString();
+        let verifyCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit
 
         if (existingUserByEmail) {
             if(existingUserByEmail.isVerified) {
