@@ -1,6 +1,6 @@
-import { resend } from '@/src/lib/resend';
+import { resend } from '@/lib/resend';
 import VerificationEmail from '../emails/VerifEmail';
-import { ApResp } from '@/src/types/ApResponse';
+import { ApResp } from '@/types/ApResponse';
 
 
 export async function sendVrfMail(

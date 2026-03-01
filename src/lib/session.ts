@@ -4,7 +4,7 @@ import { NextRequest } from 'next/server'
 
     
 export async function getServerSession(req: NextRequest ) {
-  return  await auth.api.getSession({
+  return await auth.api.getSession({
     headers: req.headers,
   });
 }

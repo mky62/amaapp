@@ -9,12 +9,14 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@gsap/react": "^2.1.2",
     "@react-email/components": "^1.0.8",
     "@react-email/render": "^2.0.4",
     "bcrypt": "^6.0.0",
     "better-auth": "^1.4.19",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "gsap": "^3.14.2",
     "lucide-react": "^0.575.0",
     "mongodb": "^7.1.0",
     "mongoose": "^9.2.2",

@@ -1,7 +1,7 @@
 import { betterAuth } from "better-auth";
 import { mongodbAdapter } from "better-auth/adapters/mongodb";
 import bcrypt from "bcrypt";
-import UserModel from "@/src/model/User";
+import UserModel from "@/model/User";
 import dbConnect from "./dbConnect";
 
 
@@ -11,7 +11,6 @@ import dbConnect from "./dbConnect";
   email: string;
   password: string;
 };
-
 
 export const auth = betterAuth({
   database: mongodbAdapter(db),

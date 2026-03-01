@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession  } from '@/src/lib/session'
+import { getServerSession  } from '@/lib/session'
 
 export async function proxy(req: NextRequest) {
 
