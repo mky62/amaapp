@@ -1,4 +1,4 @@
-import { Message } from "@/src/model/User";
+import { Message } from "@/model/User";
 
 export interface ApResp{
     success: boolean;
