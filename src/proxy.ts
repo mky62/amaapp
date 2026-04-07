@@ -1,19 +1,18 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession  } from '@/lib/session'
+import { NextResponse, type NextRequest } from "next/server";
+
+import { getServerSession } from "@/lib/session";
 
 export async function proxy(req: NextRequest) {
+  const session = await getServerSession(req);
+  const isAuthPage =
+    req.nextUrl.pathname.startsWith("/signin") ||
+    req.nextUrl.pathname.startsWith("/signup");
 
-        const session = await getServerSession(req);
+  if (!session && req.nextUrl.pathname.startsWith("/dashboard")) {
+    return NextResponse.redirect(new URL("/signin", req.url));
+  }
 
-    const isAuthPage = 
-    req.nextUrl.pathname.startsWith('/login') ||
-    req.nextUrl.pathname.startsWith('/signUp');
-
-    if (!session && !isAuthPage) {
-        return NextResponse.redirect(new URL('/login', req.url))
-    }
-
-   if (session && isAuthPage) {
+  if (session && isAuthPage) {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 
@@ -21,5 +20,5 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-    matcher: ['/dashboard/:path*', '/login', '/signUp'],
-}
+  matcher: ["/dashboard/:path*", "/signin", "/signup"],
+};

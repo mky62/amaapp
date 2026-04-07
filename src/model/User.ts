@@ -1,9 +1,8 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
-export interface Message extends Document {
+export interface Message {
     content: string;
     createdAt: Date;
-
 }
 
 const MessageSchema: Schema<Message> = new Schema({

@@ -1,104 +1,113 @@
-"use client"
-import React, { useState,useRef } from 'react';
-import gsap from 'gsap';
-import { useGSAP } from '@gsap/react';
-import { Spinner } from "../components/ui/spinner"
-import { useRouter } from 'next/navigation';
+"use client";
 
-gsap.registerPlugin(useGSAP);
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+
+import { authClient } from "@/lib/auth-client";
+import { signInSchema } from "@/schemas/signInSch";
+import { Spinner } from "@/components/ui/spinner";
+
+type SignInValues = z.infer<typeof signInSchema>;
 
 export default function SignInForm() {
-  const containerRef = useRef(null);
+  const router = useRouter();
+  const [serverMessage, setServerMessage] = useState<string | null>(null);
 
-    useGSAP(() => {
-        // This targets everything with the class "animate-item" inside our form
-        gsap.from('.animate-item', {
-            y: 30,               // Start 30px down
-            opacity: 0,          // Start completely transparent
-            duration: 0.8,       // Animation takes 0.8 seconds
-            stagger: 0.15,       // 0.15s delay between each element animating
-            ease: 'power3.out',  // Smooth deceleration
-            delay: 0.1           // Tiny initial delay so it doesn't snap instantly on load
-        });
-    }, { scope: containerRef }); // Scoping prevents animating other elements on the page
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<SignInValues>({
+    resolver: zodResolver(signInSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
 
-    const router = useRouter();
-    const [loading, setLoading] = useState(false);
+  const onSubmit = async (values: SignInValues) => {
+    setServerMessage(null);
 
-    async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
-        e.preventDefault();
-        setLoading(true);
+    const response = await authClient.signIn.email({
+      email: values.email,
+      password: values.password,
+    });
 
-        const form = new FormData(e.currentTarget)
-
-       const res =  await fetch('/api/auth/sign-in/email', {
-            method: 'POST',
-            credentials: 'include',
-            headers: {
-                "Content-type": "application/json",
-            },
-            body: JSON.stringify({
-                email: form.get('email'),
-                password: form.get('password'),
-            }),
-        });
-
-        setLoading(false);
-
-        if (!res.ok) {
-            alert("invalid crendentials");
-            return;
-
-        }
-
-        router.replace('dashboard');
-        router.refresh();
-
+    if (response.error) {
+      setServerMessage(response.error.message ?? "Unable to sign in");
+      return;
     }
-         return (
-         /* BACKGROUND CONTAINER */
-        <div 
-            className="min-h-screen w-full flex items-center justify-center p-4 bg-cover bg-center bg-no-repeat"
-            style={{ backgroundImage: "url('/path-to-your/image_650035.jpg')" }} // Update with your actual path
-        >
-            {/* GLASSMORPHISM FORM CARD */}
-            <form 
-                ref={containerRef}
-                onSubmit={handleSubmit} 
-                className="form-card flex flex-col space-y-6 bg-white/80 backdrop-blur-md p-10 rounded-2xl shadow-2xl shadow-inset[0 4 8 rgba(0, 77, 0, 0.5)] border border-slate-300/80 w-full max-w-sm"
-            >
-                <div className="text-center animate-item">
 
-                    <h2 className="text-2xl font-black text-gray-900 tracking-tight"> LOGIN</h2>
-                    <div className="h-1 w-12 bg-amber-500 mx-auto mt-2 rounded-full" />
-                </div>
+    router.push("/dashboard");
+    router.refresh();
+  };
 
-                <div className="flex flex-col space-y-4 animate-item">
-                    <input 
-                        type="email" 
-                        name="email" 
-                        placeholder="Email" 
-                        required 
-                        className="w-full px-4 py-3 bg-white/50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all shadow-sm"
-                    />
-                    <input 
-                        type="password" 
-                        name="password" 
-                        placeholder="Password" 
-                        required 
-                        className="w-full px-4 py-3 bg-white/50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all shadow-sm"
-                    />
-                </div>
+  return (
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="retro-panel w-full max-w-xl space-y-6 p-6 sm:p-8"
+    >
+      <div className="space-y-3">
+        <span className="retro-badge">Sign In</span>
+        <h1 className="text-3xl font-bold uppercase text-[#fff7d1] sm:text-4xl">
+          Load your message board
+        </h1>
+        <p className="text-sm leading-7 text-[#d7cef8]">
+          Verified operators can inspect incoming notes and toggle message intake.
+        </p>
+      </div>
 
-                <div className="animate-item">
-                    <button  
-                        disabled={loading}
-                        className="w-full flex items-center justify-center bg-black hover:bg-gray-800 text-white font-bold py-4 px-4 rounded-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg disabled:opacity-50"
-                    >
-                        {loading ? <Spinner className="w-5 h-5 animate-spin" /> : "Sign In"}
-                    </button>
-                </div>
-            </form>
-        </div>
-  )
+      <label className="block space-y-2">
+        <span className="text-sm uppercase tracking-[0.16em] text-[#35d0ba]">
+          Email
+        </span>
+        <input
+          {...register("email")}
+          type="email"
+          className="retro-inset w-full px-4 py-3 outline-none"
+          placeholder="pilot@terminal.net"
+        />
+        {errors.email ? <p className="text-sm text-[#ff8c42]">{errors.email.message}</p> : null}
+      </label>
+
+      <label className="block space-y-2">
+        <span className="text-sm uppercase tracking-[0.16em] text-[#35d0ba]">
+          Password
+        </span>
+        <input
+          {...register("password")}
+          type="password"
+          className="retro-inset w-full px-4 py-3 outline-none"
+          placeholder="••••••••"
+        />
+        {errors.password ? <p className="text-sm text-[#ff8c42]">{errors.password.message}</p> : null}
+      </label>
+
+      {serverMessage ? (
+        <p className="retro-inset border-[#ff8c42] bg-[#3b1732] px-4 py-3 text-sm text-[#fff7d1]">
+          {serverMessage}
+        </p>
+      ) : null}
+
+      <button
+        type="submit"
+        disabled={isSubmitting}
+        className="retro-button flex w-full items-center justify-center gap-2 px-4 py-4 text-sm font-bold"
+      >
+        {isSubmitting ? <Spinner className="size-4" /> : null}
+        {isSubmitting ? "Authenticating" : "Enter Dashboard"}
+      </button>
+
+      <p className="text-sm leading-7 text-[#d7cef8]">
+        Need a new handle?{" "}
+        <Link href="/signup" className="font-bold uppercase text-[#ffe066] underline">
+          Create Account
+        </Link>
+      </p>
+    </form>
+  );
 }

@@ -1,103 +1,104 @@
+import { z } from "zod";
+
 import { auth } from "@/lib/auth";
+import { createApiResponse, getValidationMessage } from "@/lib/api";
 import dbConnect from "@/lib/dbConnect";
 import UserModel from "@/model/User";
+import { acceptMessageSchema } from "@/schemas/acceptMessageSch";
 import { headers } from "next/headers";
 
-
-// update message acceptance preference for the user
-
 export async function POST(request: Request) {
+  await dbConnect();
 
-    await dbConnect();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
 
-    const session = await auth.api.getSession({
-        headers: await headers(), // or headers: req.headers
-    });
+  if (!session) {
+    return createApiResponse(
+      { success: false, message: "Unauthorized" },
+      401,
+    );
+  }
 
-    if (!session) {
-        return Response.json(
-            {
-                success: false,
-                message: "Unauthorized",
-            },
-            { status: 401 }
-        )
+  try {
+    const payload = acceptMessageSchema.parse(await request.json());
+    const normalizedEmail = session.user.email.trim().toLowerCase();
+
+    const updatedUser = await UserModel.findOneAndUpdate(
+      { email: normalizedEmail },
+      { isAcceptingMessages: payload.acceptMessages },
+      { new: true },
+    );
+
+    if (!updatedUser) {
+      return createApiResponse(
+        { success: false, message: "User not found" },
+        404,
+      );
     }
 
-    const { acceptMessages } = await request.json();
-
-    try {
-        const updatedUser = await UserModel.findByIdAndUpdate(
-            session.user.id,
-            { isAcceptingMessages: acceptMessages },
-            { new: true }
-        );
-
-        if(!updatedUser) {
-            return Response.json(
-                { success: false, message: "User not found" },
-                { status: 404 }
-            );
-        }
-
-         return Response.json(
-      {
-        success: true,
-        message: "Message acceptance updated",
-        updatedUser,
-      },
-      { status: 200 }
-    );
+    return createApiResponse({
+      success: true,
+      message: "Message acceptance updated",
+      isAcceptingMessages: updatedUser.isAcceptingMessages,
+    });
   } catch (error) {
-    console.error(error);
+    if (error instanceof z.ZodError) {
+      return createApiResponse(
+        { success: false, message: getValidationMessage(error) },
+        400,
+      );
+    }
 
-    return Response.json(
+    console.error("Error updating message acceptance:", error);
+
+    return createApiResponse(
       { success: false, message: "Update failed" },
-      { status: 500 }
+      500,
     );
   }
 }
 
-//. Fetch message acceptance preference for the user
-
 export async function GET() {
-   
+  await dbConnect();
 
-    await dbConnect();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
 
-        const session = await auth.api.getSession({
-            headers: await headers(), // or headers: req.headers
-        });
+  if (!session) {
+    return createApiResponse(
+      { success: false, message: "Unauthorized" },
+      401,
+    );
+  }
 
-        if (!session) 
-            {
-                return Response.json(
-                { success: false, message: "Not authenticated" },
-                { status: 401 }
-                );
-            }
-            try {
-                const foundUser  = await UserModel.findById(session.user.id);
+  try {
+    const normalizedEmail = session.user.email.trim().toLowerCase();
 
-                if (!foundUser) {
-                    return Response.json(
-                        { success: false, message: "user not found "},
-                        { status: 404}
-                    );
-                }
-            return Response.json(
-                {
-                    success: true,
-                    isAcceptingMessages: foundUser.isAcceptingMessages,
-                },
-                { status: 200 }
-                );
-            } catch (error) {
-                console.error(error);
+    const user = await UserModel.findOne({ email: normalizedEmail })
+      .select("isAcceptingMessages")
+      .lean();
 
-                return Response.json(
-                { success: false, message: "Fetch failed" },
-                { status: 500 }
-                );
-            }
-            }
+    if (!user) {
+      return createApiResponse(
+        { success: false, message: "User not found" },
+        404,
+      );
+    }
+
+    return createApiResponse({
+      success: true,
+      message: "Message acceptance fetched",
+      isAcceptingMessages: user.isAcceptingMessages,
+    });
+  } catch (error) {
+    console.error("Error fetching message acceptance:", error);
+
+    return createApiResponse(
+      { success: false, message: "Fetch failed" },
+      500,
+    );
+  }
+}

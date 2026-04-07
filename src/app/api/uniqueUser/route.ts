@@ -1,75 +1,52 @@
-import dbConnect  from "@/lib/dbConnect";
-import UserModel from '@/model/User';
-import {z } from 'zod';
-import { usernameValidation } from '@/schemas/signUpSch';
+import { z } from "zod";
 
-const UsernameQuerySchema = z.object({
+import { createApiResponse, getValidationMessage } from "@/lib/api";
+import dbConnect from "@/lib/dbConnect";
+import UserModel from "@/model/User";
+import { usernameValidation } from "@/schemas/signUpSch";
+
+const usernameQuerySchema = z.object({
   username: usernameValidation,
 });
 
 export async function GET(request: Request) {
-
+  try {
     await dbConnect();
 
-    try {
-        const { searchParams } = new URL(request.url);
-        const queryParams = {
-            username: searchParams.get('username'),
-        };
+    const { searchParams } = new URL(request.url);
+    const result = usernameQuerySchema.parse({
+      username: searchParams.get("username"),
+    });
 
-        const result = UsernameQuerySchema.safeParse(queryParams);
+    const existingUser = await UserModel.findOne({ username: result.username });
 
-        if (!result.success) {
-
-            const errorTree = z.treeifyError(result.error);
-
-            const usernameErrors = errorTree.properties?.username?.errors ?? [];
-            return Response.json(
-                {
-                    success: false,
-                    message: 
-                        usernameErrors?.length > 0
-                        ? usernameErrors.join(',')
-                        : 'Invalid query parameters',
-                },
-                { status: 400 }
-            );
-        }
-
-        const { username } = result.data;
-
-        const existingVerifiedUser = await UserModel.findOne({
-            username,
-            isVerified: true,
-        });
-
-        if (existingVerifiedUser) {
-            return Response.json(
-                {
-                    success: false,
-                    message: 'Username is already taken',
-                },
-                { status: 200 }
-            );
-        }
-
-        return Response.json(
-            {
-                success: true,
-                message: 'Username is available',
-            },
-            { status: 200 }
-        );
-    }
-    catch (error) {
-        console.error('Error checking username availability:', error);
-        return Response.json(
-            {
-                success: false,
-                message: 'An error occurred while checking username availability',
-            },
-            { status: 500 }
-        );
+    if (existingUser) {
+      return createApiResponse({
+        success: false,
+        message: "Username is already taken",
+      });
     }
 
+    return createApiResponse({
+      success: true,
+      message: "Username is available",
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return createApiResponse(
+        { success: false, message: getValidationMessage(error) },
+        400,
+      );
+    }
+
+    console.error("Error checking username availability:", error);
+
+    return createApiResponse(
+      {
+        success: false,
+        message: "An error occurred while checking username availability",
+      },
+      500,
+    );
+  }
 }

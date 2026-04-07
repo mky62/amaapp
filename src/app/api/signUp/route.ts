@@ -1,96 +1,103 @@
+import bcrypt from "bcrypt";
+import { z } from "zod";
+
+import { sendVrfMail } from "@/helpers/sendVrfMail";
+import { syncBetterAuthCredentialUser } from "@/lib/betterAuthSync";
+import { createApiResponse, getValidationMessage } from "@/lib/api";
 import dbConnect from "@/lib/dbConnect";
 import UserModel from "@/model/User";
-import bcrypt from 'bcrypt';
-import { sendVrfMail as sendVerificationEmail } from "@/helpers/sendVrfMail";
+import { signUpSchema } from "@/schemas/signUpSch";
 
-export async function POST(req: Request ) {
-    await dbConnect();
+function generateVerifyCode() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
 
-    try {
-        const { username, email, password} = await req.json();
+export async function POST(request: Request) {
+  await dbConnect();
 
-        const existingUserVerified = await UserModel.findOne({
-            username,
-            isVerified: true,
-        })
+  try {
+    const { username, email, password } = signUpSchema.parse(await request.json());
 
-        if (existingUserVerified) {
-            return Response.json(
-                {
-                    success: false,
-                    message: 'Username is already taken',
-                },
-                { status: 400 }
-            );
-        }
+    const existingByUsername = await UserModel.findOne({ username });
 
-        const existingUserByEmail = await UserModel.findOne({ email });
-        let verifyCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit
+    if (existingByUsername && existingByUsername.email !== email) {
+      return createApiResponse(
+        { success: false, message: "Username is already taken" },
+        400,
+      );
+    }
 
-        if (existingUserByEmail) {
-            if(existingUserByEmail.isVerified) {
-                return Response.json(
-                    {
-                        success: false,
-                        message: 'User already exists with this email',
-                    },
-                    { status: 400}
-                );
-            } else {
-                const hashedPassword = await bcrypt.hash(password, 10);
-                existingUserByEmail.password = hashedPassword;
-                existingUserByEmail.verifyCode = verifyCode;
-                await existingUserByEmail.save();
-            }
-        } else {
-            const hashedPassword = await bcrypt.hash(password, 10);
-            const expiryDate = new Date();
-            expiryDate.setHours(expiryDate.getHours() + 1);
+    const existingByEmail = await UserModel.findOne({ email });
 
-            const newUser = new UserModel({
-                username,
-                email,
-                password: hashedPassword,
-                verifyCode,
-                verifyCodeExpires: expiryDate,
-                isVerified: false,
-                isAcceptingMessages: true,
-                messages: [],
-            })
-            await newUser.save();
-        }
+    if (existingByEmail?.isVerified) {
+      return createApiResponse(
+        { success: false, message: "User already exists with this email" },
+        400,
+      );
+    }
 
-        // send verification email
-        const emailResponse = await sendVerificationEmail(
-            email,
-            username,
-            verifyCode
-        );
-        if (!emailResponse.success) {
-            return Response.json (
-                {
-                    success: false,
-                    message: emailResponse.message,
-                },
-                { status: 500}
-            );
-        }
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const verifyCode = generateVerifyCode();
+    const verifyCodeExpires = new Date(Date.now() + 60 * 60 * 1000);
 
-        return Response.json (
-            {
-                success: true,
-                message: 'User registered successfully. Please check your email for the verification code.',
-            },
-            { status: 201 }
-        );
-    }  catch (error) {
-    console.error('Error registering user:', error);
-    return Response.json(
+    if (existingByEmail) {
+      existingByEmail.username = username;
+      existingByEmail.password = hashedPassword;
+      existingByEmail.verifyCode = verifyCode;
+      existingByEmail.verifyCodeExpires = verifyCodeExpires;
+      existingByEmail.isVerified = false;
+      await existingByEmail.save();
+    } else {
+      const user = new UserModel({
+        username,
+        email,
+        password: hashedPassword,
+        verifyCode,
+        verifyCodeExpires,
+        isVerified: false,
+        isAcceptingMessages: true,
+        message: [],
+      });
+
+      await user.save();
+    }
+
+    await syncBetterAuthCredentialUser({
+      email,
+      username,
+      passwordHash: hashedPassword,
+      emailVerified: false,
+    });
+
+    const emailResponse = await sendVrfMail(email, username, verifyCode);
+
+    if (!emailResponse.success) {
+      return createApiResponse(
+        { success: false, message: emailResponse.message },
+        500,
+      );
+    }
+
+    return createApiResponse(
       {
-        success: false,
-        message: 'Error registering user',
+        success: true,
+        message: "User registered successfully. Please check your email for the verification code.",
       },
-      { status: 500 }
+      201,
+    );
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return createApiResponse(
+        { success: false, message: getValidationMessage(error) },
+        400,
+      );
+    }
+
+    console.error("Error registering user:", error);
+
+    return createApiResponse(
+      { success: false, message: "Error registering user" },
+      500,
     );
   }
 }
