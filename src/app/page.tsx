@@ -6,7 +6,7 @@ export default function HomePage() {
       <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-6xl flex-col justify-center gap-8">
         <section className="retro-panel relative grid gap-8 p-6 sm:p-10 lg:grid-cols-[1.15fr_0.85fr]">
           <div className="space-y-6">
-            <span className="retro-badge">AMA APP 1997 EDITION</span>
+            <span className="retro-badge">Incognious</span>
             <div className="space-y-4">
               <h1 className="max-w-4xl text-4xl leading-tight font-bold uppercase sm:text-6xl">
                 Broadcast your handle. Receive honest anonymous messages.
@@ -33,11 +33,7 @@ export default function HomePage() {
               </Link>
             </div>
 
-            <div className="grid gap-3 text-sm uppercase tracking-[0.14em] text-[#ffe066] sm:grid-cols-3">
-              <div className="retro-inset p-4">Anonymous notes</div>
-              <div className="retro-inset p-4">Email verification</div>
-              <div className="retro-inset p-4">Inbox control switch</div>
-            </div>
+         
           </div>
 
           <div className="space-y-5">
@@ -47,13 +43,13 @@ export default function HomePage() {
               </p>
               <div className="mt-4 space-y-4 text-sm leading-7 text-[#fff7d1]">
                 <p>
-                  01. Register a username and password.
+                  01. Register on the sign up page.
                 </p>
                 <p>
-                  02. Enter the six-digit verification code.
+                  02. Verify your email address.
                 </p>
                 <p>
-                  03. Share your public `/u/username` page.
+                  03. Share your public page.
                 </p>
                 <p>
                   04. Flip your inbox on or off from the dashboard.

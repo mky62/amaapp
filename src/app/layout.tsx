@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "AMA App",
+  title: "Incognious",
   description: "Anonymous inbox for honest feedback and questions.",
 };
 
